@@ -430,9 +430,13 @@ export const createLolClientContext = () => {
         setClientState(ClientState.NotFound);
     });
 
+    const currentSummonerPuuid = () =>
+        (hasCurrentSummoner() && currentSummoner.puuid) || undefined;
+
     return {
         clientState,
         champSelectSession,
+        currentSummonerPuuid,
         startLolClientIntegration,
         stopLolClientIntegration,
         clientError,

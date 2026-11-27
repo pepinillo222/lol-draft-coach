@@ -8,9 +8,9 @@ Basado en [DraftGap](https://github.com/vigovlugt/draftgap) de Vigo Vlugt (licen
 
 Hecho:
 - App de escritorio para Windows con nombre propio, sin el actualizador automático de DraftGap.
+- **Pool personal**: las sugerencias tienen en cuenta tus últimas 100 partidas de SoloQ y tu maestría (Riot API). Se configura en Ajustes → Mi pool con tu API key personal de developer.riotgames.com. Añade las columnas "Tú" (cuánto mejor o peor rindes tú con ese pick) y "Para ti" (winrate del draft más tu ajuste personal).
 
 Planeado:
-- **Pool personal**: las recomendaciones tienen en cuenta tus partidas y tu maestría (Riot API).
 - **Builds según el draft**: ajustes según el perfil de daño, la curación, el aguante y el control del equipo rival.
 - **Plan de partida con IA local** (Ollama) por cada draft.
 

@@ -21,6 +21,7 @@ import {
     DialogTrigger,
 } from "../common/Dialog";
 import { FAQDialog } from "./FAQDialog";
+import { PersonalPoolSettings } from "./PersonalPoolSettings";
 
 export default function SettingsDialog() {
     const { isDesktop } = useMedia();
@@ -185,6 +186,10 @@ export default function SettingsDialog() {
                     />
                 </div>
             </div>
+
+            <Show when={isDesktop}>
+                <PersonalPoolSettings />
+            </Show>
 
             <Show when={isDesktop}>
                 <div>

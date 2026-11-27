@@ -13,6 +13,8 @@ use tauri::async_runtime::Mutex;
 struct AppState {
     lcu_data: Mutex<Option<LcuData>>,
     client: Client,
+    // Separate client with normal certificate checks for the Riot API.
+    riot_client: Client,
 }
 
 #[derive(Serialize, Debug)]
@@ -168,15 +170,75 @@ async fn get_pickable_champion_ids(state: tauri::State<'_, AppState>) -> Result<
     get_lcu_response(&state, "lol-champ-select/v1/pickable-champion-ids").await
 }
 
+fn is_valid_riot_request(host: &str, path: &str) -> bool {
+    let host_ok = host.ends_with(".api.riotgames.com")
+        && host
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-');
+    let path_ok = (path.starts_with("riot/") || path.starts_with("lol/"))
+        && !path.contains("..")
+        && !path.contains("://");
+    host_ok && path_ok
+}
+
+// GET a Riot API endpoint. The webview cannot call the Riot API directly
+// because it does not allow cross-origin requests.
+// Errors: "rate_limited:<seconds>", "riot_<status>" or a network message.
+#[tauri::command]
+async fn riot_api_get(
+    state: tauri::State<'_, AppState>,
+    host: String,
+    path: String,
+    api_key: String,
+) -> Result<Value, String> {
+    if !is_valid_riot_request(&host, &path) {
+        return Err("invalid_request".to_owned());
+    }
+
+    let res = state
+        .riot_client
+        .get(format!("https://{host}/{path}"))
+        .header("X-Riot-Token", api_key)
+        .send()
+        .await
+        .map_err(|e| format!("network: {e}"))?;
+
+    let status = res.status();
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        let retry_after = res
+            .headers()
+            .get("Retry-After")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(10);
+        return Err(format!("rate_limited:{retry_after}"));
+    }
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return Ok(Value::Null);
+    }
+    if !status.is_success() {
+        return Err(format!("riot_{}", status.as_u16()));
+    }
+
+    res.json::<Value>()
+        .await
+        .map_err(|e| format!("Could not parse json: {e}"))
+}
+
 fn main() {
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
         .build()
         .expect("Could not build client");
 
+    let riot_client = Client::builder()
+        .build()
+        .expect("Could not build Riot API client");
+
     let state = AppState {
         lcu_data: Mutex::new(None),
         client,
+        riot_client,
     };
 
     tauri::Builder::default()
@@ -189,8 +251,34 @@ fn main() {
             get_champ_select_session,
             get_current_summoner,
             get_grid_champions,
-            get_pickable_champion_ids
+            get_pickable_champion_ids,
+            riot_api_get
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_valid_riot_request;
+
+    #[test]
+    fn accepts_riot_endpoints() {
+        assert!(is_valid_riot_request(
+            "europe.api.riotgames.com",
+            "lol/match/v5/matches/EUW1_1"
+        ));
+        assert!(is_valid_riot_request(
+            "euw1.api.riotgames.com",
+            "riot/account/v1/accounts/by-riot-id/a/b"
+        ));
+    }
+
+    #[test]
+    fn rejects_other_hosts_and_paths() {
+        assert!(!is_valid_riot_request("evil.com", "lol/x"));
+        assert!(!is_valid_riot_request("evil.com/.api.riotgames.com", "lol/x"));
+        assert!(!is_valid_riot_request("euw1.api.riotgames.com", "admin/x"));
+        assert!(!is_valid_riot_request("euw1.api.riotgames.com", "lol/../x"));
+    }
 }

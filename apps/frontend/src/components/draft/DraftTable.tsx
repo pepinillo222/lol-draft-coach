@@ -31,6 +31,39 @@ import { championMatchesSearch } from "../../utils/search";
 import { focusSearch } from "./Search";
 import { createTableKeyboardNavigation } from "../../hooks/createTableKeyboardNavigation";
 import { ChampionContextMenuContent } from "./ChampionContextMenu";
+import { usePersonalPool } from "../../contexts/PersonalPoolContext";
+import { isInPool, PoolEntry } from "@draftgap/core/src/personal/pool";
+import { ratingToWinrate } from "@draftgap/core/src/rating/ratings";
+import { formatPercentage, getRatingClass } from "../../utils/rating";
+import { tooltip } from "../../directives/tooltip";
+// eslint-disable-next-line
+tooltip;
+
+function PersonalCell(props: { entry: PoolEntry | undefined; name: string }) {
+    const delta = () => ratingToWinrate(props.entry?.rating ?? 0) - 0.5;
+    const details = () => {
+        const e = props.entry;
+        if (!e) return "";
+        const games =
+            e.games === 0
+                ? "Sin partidas en ranked recientes"
+                : `${e.games} partidas, ${formatPercentage(e.wins / e.games, 0)}% de victorias`;
+        return `${props.name}: ${games}. Maestría: ${Math.round(e.masteryPoints / 1000)}k`;
+    };
+    return (
+        <div class="flex justify-end">
+            <span
+                class={getRatingClass(props.entry?.rating ?? 0)}
+                style={{ "font-variant-numeric": "tabular-nums" }}
+                // @ts-ignore
+                use:tooltip={{ content: details() }}
+            >
+                {delta() >= 0 ? "+" : ""}
+                {formatPercentage(delta(), 1)}
+            </span>
+        </div>
+    );
+}
 import {
     PreviewDraftAnalysisProvider,
     PreviewPick,
@@ -76,6 +109,12 @@ export default function DraftTable() {
         useDraftFilters();
     const { allySuggestions, opponentSuggestions } = useDraftSuggestions();
     const { isFavourite, setFavourite, config } = useUser();
+    const personalPool = usePersonalPool();
+
+    const personalEntry = (s: Suggestion) =>
+        personalPool.entryFor(s.championKey, s.role);
+    const personalScore = (s: Suggestion) =>
+        s.draftResult.totalRating + (personalEntry(s)?.rating ?? 0);
 
     const suggestions = () =>
         selection.team === "opponent"
@@ -104,6 +143,15 @@ export default function DraftTable() {
 
         if (roleFilter() !== undefined) {
             filtered = filtered.filter((s) => s.role === roleFilter());
+        }
+
+        if (personalPool.isActive()) {
+            if (config.personalPoolMode === "pool-only") {
+                filtered = filtered.filter((s) => isInPool(personalEntry(s)!));
+            }
+            filtered = [...filtered].sort(
+                (a, b) => personalScore(b) - personalScore(a),
+            );
         }
 
         if (favouriteFilter()) {
@@ -317,6 +365,34 @@ export default function DraftTable() {
                 </div>
             ),
         },
+        ...(personalPool.isActive()
+            ? ([
+                  {
+                      header: "Tú",
+                      accessorFn: (suggestion) =>
+                          personalEntry(suggestion)?.rating ?? 0,
+                      cell: (info) => (
+                          <PersonalCell
+                              entry={personalEntry(info.row.original)}
+                              name={
+                                  dataset()!.championData[
+                                      info.row.original.championKey
+                                  ]?.name ?? ""
+                              }
+                          />
+                      ),
+                  },
+                  {
+                      header: "Para ti",
+                      accessorFn: (suggestion) => personalScore(suggestion),
+                      cell: (info) => (
+                          <div class="flex justify-end">
+                              <RatingText rating={info.getValue<number>()} />
+                          </div>
+                      ),
+                  },
+              ] as ColumnDef<Suggestion>[])
+            : []),
         {
             id: "actions",
             cell: (info) => (

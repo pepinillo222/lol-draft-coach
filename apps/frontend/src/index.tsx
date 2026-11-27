@@ -23,6 +23,7 @@ import { DraftAnalysisProvider } from "./contexts/DraftAnalysisContext";
 import { DatasetProvider } from "./contexts/DatasetContext";
 import { DraftFiltersProvider } from "./contexts/DraftFiltersContext";
 import { ExtraDraftAnalysisProvider } from "./contexts/ExtraDraftAnalysisContext";
+import { PersonalPoolProvider } from "./contexts/PersonalPoolContext";
 
 setupMobileVH();
 setupAnalytics();
@@ -60,7 +61,9 @@ render(
                                             <DraftSuggestionsProvider>
                                                 <BuildProvider>
                                                     <LolClientProvider>
-                                                        <App />
+                                                        <PersonalPoolProvider>
+                                                            <App />
+                                                        </PersonalPoolProvider>
                                                         <Toaster
                                                             position="bottom-right"
                                                             toastOptions={{

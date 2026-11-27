@@ -31,6 +31,12 @@ const DEFAULT_CONFIG: DraftGapConfig = {
 
     // LOL CLIENT
     disableLeagueClientIntegration: false,
+
+    // PERSONAL POOL
+    riotApiKey: "",
+    riotId: "",
+    riotPlatform: "euw1",
+    personalPoolMode: "boost",
 };
 
 const FAVOURITE_PICKS_KEY = "draftgap-favourite-picks";
