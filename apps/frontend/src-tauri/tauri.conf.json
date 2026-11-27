@@ -10,7 +10,10 @@
         "active": true,
         "category": "DeveloperTool",
         "copyright": "",
-        "targets": "all",
+        "targets": [
+            "msi",
+            "nsis"
+        ],
         "externalBin": [],
         "icon": [
             "icons/32x32.png",
@@ -38,28 +41,19 @@
             "deb": {
                 "depends": []
             }
-        },
-        "createUpdaterArtifacts": "v1Compatible"
-    },
-    "productName": "DraftGap",
-    "mainBinaryName": "DraftGap",
-    "version": "3.3.1",
-    "identifier": "com.draftgap",
-    "plugins": {
-        "updater": {
-            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI0M0FCNTUxM0RBNjNFNTgKUldSWVBxWTlVYlU2dEROZGVPUEZpVjNGbCsya1ozT0xjemEwaU8xcC9qd1AzbEs4SXAzNG9MZFgK",
-            "endpoints": [
-                "https://bucket.draftgap.com/releases/latest.json"
-            ]
         }
     },
+    "productName": "Draft Coach",
+    "mainBinaryName": "DraftCoach",
+    "version": "0.1.0",
+    "identifier": "com.pepinillo222.draftcoach",
     "app": {
         "windows": [
             {
                 "fullscreen": false,
                 "height": 850,
                 "resizable": true,
-                "title": "DraftGap",
+                "title": "Draft Coach",
                 "width": 1600,
                 "useHttpsScheme": true
             }
